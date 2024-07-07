@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>Easily create 3D CSS &amp; HTML  Voxel Models</title>
+  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.css'><link rel="stylesheet" href="./style.css">
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<div class='_audio'></div>
+<div class='l'></div>
+<div @mousemove='colorPicker($event)' class='p3d'>
+  <div :style='`background: #${picker.color};left: ${picker.x}px; top: ${picker.y}px;`' @click="picker.active = !picker.active, picker.color = '#25273E'" class='p3d_colorPicker' v-if='picker.active'></div>
+  <div class='p3d_loader'>
+    <div class='p3d_loader__inner'>
+      <img src='https://assets.codepen.io/217233/p3d_logoLoading_2.svg'>
+      <div class='b'></div>
+      <div class='f'></div>
+    </div>
+  </div>
+  <div class='p3d_main'>
+    <div :class='{open : modalOpen}' @click='closeModals()' class='p3d_overlay'></div>
+    <div :class="{open : modalOpen &amp;&amp; modal == 'share'}" class='p3d_load modal'>
+      <div class='p3d_load__inner modal'>
+        <div @click="closeModals(), enJin.audioController.play('pop6')" class='close'>
+          X
+        </div>
+        <h1 v-if='submitted'>Creation shared!</h1>
+        <h1 v-if='!submitted'>Share your creation</h1>
+        <div class='wrap' v-if='submitted'>
+          <p>Amazing! Thanks for being part of the community. If your VoCSSel is approved, everyone will be able to view it in the community section. I really hope you enjoyed using VoCSSels!</p>
+        </div>
+        <div class='wrap' v-if='!submitted'>
+          <p>Want other people to be able to load in your VoCSSel? If approved, your VoCSSel will be added to our community section.</p>
+          <div class='row'>
+            <div class='row-half'>
+              <label for='name'>VoCSSel name</label>
+              <input :value='exportSettings.name' id='name' type='text' v-model='exportSettings.name'>
+            </div>
+            <div class='row-half'>
+              <label for='name'>Author name</label>
+              <input :value='author' id='name' type='text' v-model='author'>
+            </div>
+          </div>
+        </div>
+        <div class='b' v-if='!submitted'>
+          <button :class='{submitting : submitting}' @click='shareModel()'>
+            <img class='loader' draggable='false' src='https://assets.codepen.io/217233/Dual+Ring-1s-200px.gif'>
+            Share it
+          </button>
+          <button @click="closeModals(), enJin.audioController.play('pop6')">No thanks</button>
+        </div>
+      </div>
+    </div>
+    <div :class="{open : modalOpen &amp;&amp; modal == 'community'}" class='p3d_load modal community'>
+      <div class='p3d_load__inner modal'>
+        <div @click="closeModals(), enJin.audioController.play('pop6')" class='close'>
+          X
+        </div>
+        <h1>Community content</h1>
+        <p>Take a look at some of the incredible VoCSSels people have made</p>
+        <div class='s-wrap'>
+          <div class='x-wrap'>
+            <div class='p3d_load__model empty' v-if='communityContent.length == 0'>
+              <h4>Sorry, we seem to be having a problem loading content. Please try again later</h4>
+            </div>
+            <div :key='model' @click="load(model, true), closeModals(), enJin.audioController.play('pop6')" class='p3d_load__model' v-for='(model, index) in communityContent'>
+              <div :style='`background: url(${model.image})`' class='m_image'></div>
+              <div class='m_details'>
+                <p class='date'>{{model.date}}</p>
+                <p class='name'>{{model.name}}</p>
+                <p class='author'>by {{model.author}}</p>
+                <p class='voxels'>
+                  <span>
+                    {{model.voxels}}
+                  </span>
+                  voxels 
+                  <span>
+                    {{model.vertices}}
+                  </span>
+                  vertices
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div :class="{open : modalOpen &amp;&amp; modal == 'load'}" class='p3d_load modal'>
+      <div class='p3d_load__inner modal'>
+        <div @click="closeModals(), enJin.audioController.play('pop6')" class='close'>
+          X
+        </div>
+        <h1>Load a VoCSSel</h1>
+        <p>Select or manage your saved VoCSSels</p>
+        <div class='s-wrap'>
+          <div class='p3d_load__model empty' v-if='savedModelsMeta.length == 0'>
+            <h4>You don't have any VoCSSels saved. Go and make one first</h4>
+          </div>
+          <div :key='model' @click="load(index, false), closeModals(), enJin.audioController.play('pop6')" class='p3d_load__model' v-for='(model, index) in savedModelsMeta'>
+            <div :style="`background: url(${getMetaData('image', model)})`" class='m_image'></div>
+            <div class='m_details'>
+              <p class='date'>{{getMetaData('date', model)}}</p>
+              <p class='name'>{{getMetaData('name', model)}}</p>
+              <p class='author'>by {{getMetaData('author', model)}}</p>
+              <p class='voxels'>
+                <span>
+                  {{getMetaData('voxels', model)}}
+                </span>
+                voxels 
+                <span>
+                  {{getMetaData('vertices', model)}}
+                </span>
+                vertices
+              </p>
+              <div @click="deleteModel(index), enJin.audioController.play('pop5')" class='delete'>Delete</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class='p3d_main__header'>
+      <div class='header_left'>
+        <img draggable='false' src='https://assets.codepen.io/217233/p3d_logo_new.svg'>
+      </div>
+      <div class='header_right'>
+        <div class='name'>
+          <input :value='exportSettings.name' v-model='exportSettings.name'>
+        </div>
+        <div class='buttons'>
+          <div @click="newModel(), enJin.audioController.play('pop6')" class='save button'>
+            <img :class='{saving : saving}' draggable='false' src='https://assets.codepen.io/217233/p3d_load_1.svg'>
+              <div class='tooltip'>
+                New
+              </div>
+            </img>
+          </div>
+          <div @click="save(), enJin.audioController.play('pop6')" class='save button'>
+            <img :class='{saving : saving}' class='icon' draggable='false' src='https://assets.codepen.io/217233/p3d_save_1.svg'>
+            <img :class='{saving : saving}' class='loader' draggable='false' src='https://assets.codepen.io/217233/Dual+Ring-1s-200px.gif'>
+              <div class='tooltip'>
+                Save
+              </div>
+            </img>
+          </div>
+          <div @click="openModal('load'), enJin.audioController.play('pop6')" class='load button'>
+            <img draggable='false' src='https://assets.codepen.io/217233/p3d_new.svg'>
+              <div class='tooltip'>
+                Load
+              </div>
+            </img>
+          </div>
+          <div @click="openModal('community'), enJin.audioController.play('pop6')" class='community button'>
+            Community
+          </div>
+        </div>
+        <div class='options'>
+          <div :class='{active : muted}' @click='toggleAudio()' class='button'>
+            <img class='icon' draggable='false' src='https://assets.codepen.io/217233/p3d_mute.svg'>
+              <div class='tooltip'>
+                Audio
+              </div>
+            </img>
+          </div>
+          <div :class='{active : !motion}' @click='toggleMotion()' class='button'>
+            <img draggable='false' src='https://assets.codepen.io/217233/p3d_nomotion.svg'>
+              <div class='tooltip'>
+                Motion
+              </div>
+            </img>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class='p3d_main__editor'>
+      <div class='editor_left'>
+        <div :class="{export : mode == 'export'}" class='editor_left__header'>
+          <div :class="{hide : mode != 'drawing'}" class='e_buttons'>
+            <div :class="{active : symMode == ''}" @click="symMode = ''" class='button'>
+              <img draggable='false' src='https://assets.codepen.io/217233/p3d_sym_none_1.svg'>
+              <div class='tooltip'>
+                No Symmetry
+              </div>
+            </div>
+            <div :class="{active : symMode == 'x'}" @click="symMode = 'x'" class='button'>
+              <img draggable='false' src='https://assets.codepen.io/217233/p3d_sym_x_1.svg'>
+              <div class='tooltip'>
+                X Symmetry
+              </div>
+            </div>
+            <div :class="{active : symMode == 'y'}" @click="symMode = 'y'" class='button'>
+              <img draggable='false' src='https://assets.codepen.io/217233/p3d_sym_y_1.svg'>
+              <div class='tooltip'>
+                Y Symmetry
+              </div>
+            </div>
+            <div :class="{active : symMode == 'xy'}" @click="symMode = 'xy'" class='button'>
+              <img draggable='false' src='https://assets.codepen.io/217233/p3d_sym_xy_1.svg'>
+              <div class='tooltip'>
+                XY Symmetry
+              </div>
+            </div>
+          </div>
+          <div class='e_tabs'>
+            <div :class="{active : mode == 'drawing'}" @click="swapMode('drawing'), drawMode = 'draw', exportSettings.scale = 0.8, updateOrientation(0, 90, 0, false)" class='e_tabs__tab button'>
+              Draw
+              <div class='tooltip'>
+                Draw pixel art
+              </div>
+            </div>
+            <div :class="{active : mode == 'extrude'}" @click="swapMode('extrude'), drawMode = 'extrude', exportSettings.scale = 0.8, updateOrientation(-30, 140, 0, false)" class='e_tabs__tab button'>
+              Extrude
+              <div class='tooltip'>
+                Give depth
+              </div>
+            </div>
+            <div :class="{active : mode == 'paint'}" @click="swapMode('paint'), drawMode = 'draw', exportSettings.scale = 0.8, updateOrientation(0, 90, 0, false), orientationButton = 'front'" class='e_tabs__tab button'>
+              Paint
+              <div class='tooltip'>
+                Paint voxels
+              </div>
+            </div>
+            <div :class="{active : mode == 'export'}" @click="swapMode('export'), updateOrientation(0, 90, 0, true)" class='e_tabs__tab button'>
+              Export
+              <div class='tooltip'>
+                Export for web
+              </div>
+            </div>
+          </div>
+          <div class='e_sym'></div>
+        </div>
+        <div @mouseleave='picker.active = false' class='editor_left__main'>
+          <div :class="{hide : mode == 'extrude'}" class='m_palette'>
+            <div class='buttons'>
+              <div :class="{active : drawMode == 'draw'}" @click="drawMode = 'draw', enJin.audioController.play('pop6')" class='button draw'>
+                <img draggable='false' src='https://assets.codepen.io/217233/p3d_pencil.svg'>
+                <div class='tooltip'>
+                  Draw
+                </div>
+              </div>
+              <div :class="{active : drawMode == 'erase'}" @click="picker.active = false, drawMode = 'erase', enJin.audioController.play('pop6')" class='button erase' v-if="mode != 'paint'">
+                <img draggable='false' src='https://assets.codepen.io/217233/p3d_eraser_2.svg'>
+                <div class='tooltip'>
+                  Erase
+                </div>
+              </div>
+            </div>
+            <div :class='{active : picker.active}' @click='picker.active = !picker.active' class='cPicker'>
+              <svg fill='none' height='18' viewbox='0 0 18 18' width='18' xmlns='http://www.w3.org/2000/svg'>
+                <path d='M16.3 0.75C15.3 -0.25 13.7 -0.25 12.7 0.75L10.9 2.55L10.2 1.85C9.8 1.45 9.2 1.45 8.8 1.85L8 2.55C7.6 2.95 7.6 3.55 8 3.95L13 8.95C13.4 9.35 14 9.35 14.4 8.95L15.1 8.25C15.5 7.85 15.5 7.25 15.1 6.85L14.5 6.15L16.3 4.35C17.3 3.35 17.3 1.75 16.3 0.75V0.75ZM2.9 10.55C0.7 12.75 2 13.75 0 16.35L0.7 17.05C3.3 15.05 4.3 16.35 6.5 14.15L11.6 9.05L8 5.45L2.9 10.55Z' fill='black'></path>
+              </svg>
+            </div>
+            <div id='colorPicker'></div>
+          </div>
+          <div :class="{hide : mode != 'extrude'}" class='m_palette palette--depth'>
+            <div class='buttons'>
+              <div :class="{active : drawMode == 'extrude'}" @click="drawMode = 'extrude', enJin.audioController.play('pop6')" class='button erase'>
+                <img draggable='false' src='https://assets.codepen.io/217233/p3d_extrude.svg?x=ghfh'>
+                <div class='tooltip'>
+                  Extrude
+                </div>
+              </div>
+              <div :class="{active : drawMode == 'hollow'}" @click="drawMode = 'hollow', enJin.audioController.play('pop6')" class='button erase'>
+                <img draggable='false' src='https://assets.codepen.io/217233/p3d_hollow.svg?x=ghfh'>
+                <div class='tooltip'>
+                  Shell
+                </div>
+              </div>
+            </div>
+            <div class='dp-outer'>
+              <div :class="{hide : drawMode == 'extrude'}" class='hollowTip'>
+                <div class='help'>
+                  Shell a group
+                  <img class='icon' draggable='false' src='https://assets.codepen.io/217233/p3d_help.svg'>
+                  <div class='gif'>
+                    <div class='desc'>
+                      <h4>Shell tool</h4>
+                      Use the shell toggle to remove the voxels between the first and last in the row. Handy for optimising your model and removing voxels that cannot be seen. Also great for creating legs.
+                    </div>
+                    <img draggable='false' src='https://assets.codepen.io/217233/shell.gif'>
+                  </div>
+                </div>
+                <div :class='{active : shell}' @click="shell = true, enJin.audioController.play('pop6')" class='button'>
+                  On
+                </div>
+                <div :class='{active : !shell}' @click="shell = false, enJin.audioController.play('pop6')" class='button'>
+                  Off
+                </div>
+              </div>
+              <div :class="{hide : drawMode == 'hollow'}" class='dpgrid'>
+                <div class='help'>
+                  Select a depth
+                  <img class='icon' draggable='false' src='https://assets.codepen.io/217233/p3d_help.svg'>
+                  <div class='gif'>
+                    <div class='desc'>
+                      <h4>Extrude tool</h4>
+                      Select a level of depth, then click on any pixel to extrude by that amount. New voxels will be created along the z axis which can be individually painted.
+                    </div>
+                    <img draggable='false' src='https://assets.codepen.io/217233/depth.gif'>
+                  </div>
+                </div>
+                <div :class='{active : currentDepth == 1}' :data-depth='1' @click="setDepth($event), enJin.audioController.play('pop6')" class='dp'>1</div>
+                <div :class='{active : currentDepth == 2}' :data-depth='2' @click="setDepth($event), enJin.audioController.play('pop6')" class='dp'>2</div>
+                <div :class='{active : currentDepth == 3}' :data-depth='3' @click="setDepth($event), enJin.audioController.play('pop6')" class='dp'>3</div>
+                <div :class='{active : currentDepth == 4}' :data-depth='4' @click="setDepth($event), enJin.audioController.play('pop6')" class='dp'>4</div>
+                <div :class='{active : currentDepth == 5}' :data-depth='5' @click="setDepth($event), enJin.audioController.play('pop6')" class='dp'>5</div>
+                <div :class='{active : currentDepth == 6}' :data-depth='6' @click="setDepth($event), enJin.audioController.play('pop6')" class='dp'>6</div>
+                <div :class='{active : currentDepth == 7}' :data-depth='7' @click="setDepth($event), enJin.audioController.play('pop6')" class='dp'>7</div>
+                <div :class='{active : currentDepth == 8}' :data-depth='8' @click="setDepth($event), enJin.audioController.play('pop6')" class='dp'>8</div>
+                <div :class='{active : currentDepth == 9}' :data-depth='9' @click="setDepth($event), enJin.audioController.play('pop6')" class='dp'>9</div>
+              </div>
+            </div>
+          </div>
+          <div :class="{hide : mode == 'paint', loading : loading}" @mousedown='drawing = true' @mouseleave='drawing = false' @mouseup.right='handleRightClick()' @mouseup='drawing = false' class='m_grid'>
+            <div :class="{active : symMode == 'x' || symMode == 'xy'}" class='helper-x'></div>
+            <div :class="{active : symMode == 'y' || symMode == 'xy'}" class='helper-y'></div>
+            <img :class='{saving : saving}' class='loader' draggable='false' src='https://assets.codepen.io/217233/Dual+Ring-1s-200px.gif'>
+            <div :data-index='index' :data-x='Math.ceil(`${index % canvasSize}`)' :data-y='Math.floor(`${index / canvasSize + 1}`)' :key='voxel.x' :style='' @click='selectColor()' @contextmenu.prevent='' @mousedown='drawPixel($event)' @mouseenter='drawPixel($event)' class='m_grid__pixel' v-for='(voxel, index) in voxels'>
+              <div :style='`background: #${voxel.c[0][1]}`' class='p' v-if='voxel.c'></div>
+              <div :class="{show : mode == 'extrude' &amp;&amp; drawMode == 'extrude'}" class='d'>{{voxel.d}}</div>
+              <div :class="{show : mode == 'extrude' &amp;&amp; drawMode == 'hollow' &amp;&amp; voxel.h}" class='d'>S</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class='editor_right'>
+        <div :class="{show : mode == 'export'}" class='editor_right__export'>
+          <h3>Export settings</h3>
+          <p class='sub'>Export your VoCSSel for web, or as a png based on the current view</p>
+          <div class='form'></div>
+          <div class='row'>
+            <div class='row-half'>
+              <label for='name'>VoCSSel name</label>
+              <input :value='exportSettings.name' id='name' type='text' v-model='exportSettings.name'>
+            </div>
+            <div class='row-half'>
+              <label for='name'>Author name</label>
+              <input :value='author' id='name' type='text' v-model='author'>
+            </div>
+            <div @click="save(), enJin.audioController.play('pop6')" class='save button'>
+              <img :class='{saving : saving}' class='icon' draggable='false' src='https://assets.codepen.io/217233/p3d_save_1.svg'>
+              <img :class='{saving : saving}' class='loader' draggable='false' src='https://assets.codepen.io/217233/Dual+Ring-1s-200px.gif'>
+                <div class='tooltip'>
+                  Save
+                </div>
+              </img>
+            </div>
+          </div>
+          <br>
+          <div class='row'>
+            <label for='exportBg'>Background color</label>
+            <input id='exportBg'>
+            <img @click='resetBgColor()' draggable='false' src='https://assets.codepen.io/217233/p3d_resetColour.svg'>
+          </div>
+          <div class='row'>
+            <label for='perspective'>
+              Perspective:
+              <span>{{exportSettings.perspective}}px</span>
+            </label>
+            <input :value='exportSettings.perspective' id='perspective' max='3000' min='100' type='range' v-model='exportSettings.perspective'>
+          </div>
+          <div class='row'>
+            <label for='animate'>
+              Animate
+              <span>
+                <span>Turn off for viewport control</span>
+              </span>
+            </label>
+            <input :value='exportSettings.animate' id='animate' type='checkbox' v-model='exportSettings.animate'>
+          </div>
+          <div class='row' v-if='exportSettings.animate'>
+            <label for='speed'>
+              Speed:
+              <span>{{exportSettings.spinSpeed}}s</span>
+            </label>
+            <input :value='exportSettings.spinSpeed' id='speed' max='20' min='0.1' step='0.1' type='range' v-model='exportSettings.spinSpeed'>
+          </div>
+          <div class='row' v-if='!exportSettings.animate'>
+            <div class='row-half'>
+              <label for='rotateX'>
+                Rotate X:
+                <span>{{exportSettings.x}}deg</span>
+              </label>
+              <input :value='exportSettings.x' id='rotateX' max='180' min='-180' step='10' type='range' v-model='exportSettings.x'>
+            </div>
+            <div class='row-half'>
+              <label for='rotateY'>
+                Rotate Y:
+                <span>{{exportSettings.y}}deg</span>
+              </label>
+              <input :value='exportSettings.y' id='rotateY' max='180' min='-180' step='10' type='range' v-model='exportSettings.y'>
+            </div>
+          </div>
+          <div class='row' v-if='!exportSettings.animate'>
+            <div class='row-half'>
+              <label for='rotateZ'>
+                Rotate Z:
+                <span>{{exportSettings.z}}deg</span>
+              </label>
+              <input :value='exportSettings.z' id='rotateZ' max='180' min='-180' step='10' type='range' v-model='exportSettings.z'>
+            </div>
+            <div class='row-half'>
+              <label for='scale'>
+                Scale:
+                <span>{{exportSettings.scale}}</span>
+              </label>
+              <input :value='exportSettings.scale' id='scale' max='3' min='0.01' step='0.01' type='range' v-model='exportSettings.scale'>
+            </div>
+          </div>
+          <div class='buttons'>
+            <button @click="openModal('share'), enJin.audioController.play('pop6')">Share with community</button>
+            <button :class='{exporting : exporting}' @click='processForExport()' class='cp'>
+              <img :class='{saving : saving}' class='loader' draggable='false' src='https://assets.codepen.io/217233/Dual+Ring-1s-200px.gif'>
+              Export to CodePen
+            </button>
+          </div>
+        </div>
+        <p :class="{hide : mode == 'export' || mode == 'paint'}">HTML / CSS Output</p>
+        <img :class="{hide : mode == 'export'}" @click='resetBgColor()' draggable='false' src='https://assets.codepen.io/217233/p3d_resetColour.svg'>
+        <input :class="{hide : mode == 'export'}" id='colorBg'>
+        <div :class="{export : mode == 'export', paint : mode == 'paint'}" class='editor_right__preview'>
+          <div :style='`background: ${exportSettings.bgColor};`' class='p_inner' id='model'>
+            <div :class="{hide : mode == 'export'}" @click="handleZoom(0.05), enJin.audioController.play('pop6')" class='button zooms first'>
+              <img draggable='false' src='https://assets.codepen.io/217233/p3d_zoomIn.svg'>
+            </div>
+            <div :class="{hide : mode == 'export'}" @click="handleZoom(-0.05), enJin.audioController.play('pop6')" class='button zooms'>
+              <img draggable='false' src='https://assets.codepen.io/217233/p3d_zoomOut.svg'>
+            </div>
+            <div :class="{hide : mode == 'export'}" @click="zoomLevel = .8, enJin.audioController.play('pop6')" class='button zooms'>
+              <img draggable='false' src='https://assets.codepen.io/217233/p3d_resetZoom.svg'>
+            </div>
+            <div :class="{show : mode == 'paint'}" class='views'>
+              <div :class="{active : orientationButton == 'front'}" @click="updateOrientation(0, 90, 0, false), orientationButton = 'front'" class='button'>Front</div>
+              <div :class="{active : orientationButton == 'back'}" @click="updateOrientation(0, -90, 0, false), orientationButton = 'back'" class='button'>Back</div>
+              <div :class="{active : orientationButton == 'left'}" @click="updateOrientation(0, 180, 0, false), orientationButton = 'left'" class='button'>Left</div>
+              <div :class="{active : orientationButton == 'right'}" @click="updateOrientation(0, 0, 0, false), orientationButton = 'right'" class='button'>Right</div>
+              <div :class="{active : orientationButton == 'top'}" @click="updateOrientation(-90, 0, 0, false), orientationButton = 'top'" class='button'>Top</div>
+              <div :class="{active : orientationButton == 'bottom'}" @click="updateOrientation(90, 0, 0, false), orientationButton = 'bottom'" class='button'>Bottom</div>
+              <div :class="{active : orientationButton == 'iso1'}" @click="updateOrientation(-30, 50, 0, false), orientationButton = 'iso1'" class='button'>Isometric 1</div>
+              <div :class="{active : orientationButton == 'iso2'}" @click="updateOrientation(-30, 140, 0, false), orientationButton = 'iso2'" class='button'>Isometric 2</div>
+              <div :class="{active : orientationButton == 'iso3'}" @click="updateOrientation(-30, 230, 0, false), orientationButton = 'iso3'" class='button'>Isometric 3</div>
+              <div :class="{active : orientationButton == 'iso4'}" @click="updateOrientation(-30, 310, 0, false), orientationButton = 'iso4'" class='button'>Isometric 4</div>
+            </div>
+            <div :style='`transform: scale(${zoomLevel})`' @wheel='zoom($event)' class='zoom'>
+              <div class='exportWrap'>
+                <div :class="{extrude : mode == 'extrude', spin : mode == 'export' &amp;&amp; exportSettings.animate, export : mode == 'export', paint : mode == 'paint'}" :style='`transform: scale(${exportSettings.scale}) rotateZ(${exportSettings.z}deg) rotateX(${exportSettings.x}deg) rotateY(${exportSettings.y}deg); animation-duration: ${exportSettings.spinSpeed}s`' class='model' v-if='voxels'>
+                  <div :class='`g-${voxelGroup.d}`' :data-index='`${voxelGroup.index}`' :key='voxelGroup.x' class='voxel-group' stagger='50' v-for='(voxelGroup, index) in voxels' v-if='voxelGroup.length != 0'>
+                    <div :class='`d-${index}`' :key='index' class='voxel' v-for='(voxel, index) in voxelGroup.d' v-if='voxelGroup.c'>
+                      <div :class='`x-${voxelGroup.x} y-${voxelGroup.y}`' :data-index='`${index}`' class='v' v-if="voxelGroup.c[index] != ''">
+                        <div :class="{paintable : mode == 'paint'}" :data-vertex='0' :style='[voxelGroup.c ? { background: `#${voxelGroup.c[index][0]}` } : null]' @click='paint($event)' class='f f--f' v-if='voxelGroup?.c?.[index]?.[0]'></div>
+                        <div :class="{paintable : mode == 'paint'}" :data-vertex='1' :style='[voxelGroup.c ? { background: `#${voxelGroup.c[index][1]}` } : null]' @click='paint($event)' class='f f--ba' v-if='voxelGroup?.c?.[index]?.[0]'></div>
+                        <div :class="{paintable : mode == 'paint'}" :data-vertex='2' :style='[voxelGroup.c ? { background: `#${voxelGroup.c[index][2]}` } : null]' @click='paint($event)' class='f f--t' v-if='voxelGroup?.c?.[index]?.[0]'></div>
+                        <div :class="{paintable : mode == 'paint'}" :data-vertex='3' :style='[voxelGroup.c ? { background: `#${voxelGroup.c[index][3]}` } : null]' @click='paint($event)' class='f f--b' v-if='voxelGroup?.c?.[index]?.[0]'></div>
+                        <div :class="{paintable : mode == 'paint'}" :data-vertex='4' :style='[voxelGroup.c ? { background: `#${voxelGroup.c[index][4]}` } : null]' @click='paint($event)' class='f f--l' v-if='voxelGroup?.c?.[index]?.[0]'></div>
+                        <div :class="{paintable : mode == 'paint'}" :data-vertex='5' :style='[voxelGroup.c ? { background: `#${voxelGroup.c[index][5]}` } : null]' @click='paint($event)' class='f f--r' v-if='voxelGroup?.c?.[index]?.[0]'></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p :class="{hide : mode == 'export' || mode == 'paint'}" class='voxelCount'>
+          <span>
+            {{getVoxelsCount()}}
+          </span>
+          Voxels 
+          <span>
+            {{getVerticesCount() - 1}}
+          </span>
+          Vertices
+          <span :class='{show : getVerticesCount() &gt; 750}' class='block'>
+            <img class='icon' draggable='false' src='https://assets.codepen.io/217233/p3d_warning.svg'>
+            Performance will decrease as the vertices count increases. Make sure to shell out any unused voxels for maximum performance.
+          </span>
+        </p>
+      </div>
+    </div>
+    <div class='p3d_main_footer'>
+      <p>
+        Made with love by
+        <a href='https://github.com/deeptesh-rout' target='_blank'>Deeptesh</a>
+      </p>
+    </div>
+  </div>
+</div>
+<!-- partial -->
+  <script src='https://codepen.io/jcoulterdesign/pen/LYbaWJr/70920fa4550ed45e7c1ff28b643b6969.js'></script>
+<script src='https://codepen.io/jcoulterdesign/pen/rNWRyqz/e54f657bdb261a60a06bdf7c59e08eca.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.1/spectrum.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/rasterizehtml/1.3.0/rasterizeHTML.allinone.js'></script><script  src="./script.js"></script>
+
+</body>
+</html>
